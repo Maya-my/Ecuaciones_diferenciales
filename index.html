@@ -1,3 +1,478 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador EDO | Incidencias de software</title>
+
+<!-- KaTeX CSS & JS para renderizado matemático profesional -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+<style>
+:root {
+  --bg: #060913;
+  --card: #0f172a;
+  --ink: #f1f5f9;
+  --muted: #94a3b8;
+  --line: #1e293b;
+  --blue: #3b82f6;
+  --cyan: #38bdf8;
+  --green: #10b981;
+  --orange: #f59e0b;
+  --purple: #8b5cf6;
+  --glow: rgba(59, 130, 246, 0.15);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #060913 60%), var(--bg);
+  color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+header {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 27, 75, 0.8));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 60px 20px 48px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+header::before {
+  content: "";
+  position: absolute;
+  top: -150px;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.2), transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+header .wrap, main {
+  max-width: 1150px;
+  margin: auto;
+  position: relative;
+}
+header h1 {
+  margin: 12px 0;
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  line-height: 1.15;
+  letter-spacing: -.03em;
+  background: linear-gradient(to right, #ffffff, #93c5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+header p { max-width: 800px; color: #cbd5e1; font-size: 1.05rem; }
+
+.kicker {
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-size: .8rem;
+  font-weight: 800;
+  color: var(--cyan);
+}
+
+main { padding: 32px 16px 80px; }
+
+.section {
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px;
+  margin: 24px 0;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  animation: riseIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.section:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 20px var(--glow);
+  transform: translateY(-2px);
+}
+
+h2 { margin: 0 0 16px; font-size: 1.5rem; letter-spacing: -.02em; color: #f8fafc; }
+h3 { margin: 24px 0 12px; font-size: 1.15rem; color: #e2e8f0; }
+p { margin: 10px 0; }
+.muted { color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+label {
+  display: block;
+  font-weight: 600;
+  font-size: .9rem;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+}
+input, select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--ink);
+  font: inherit;
+  transition: all .25s ease;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 22px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font: 700 1rem inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+  transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+button:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.45);
+}
+button:active { transform: translateY(0); }
+.controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  
+/* Formatos mejorados para las Fórmulas Matemáticas */
+.formula {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-left: 4px solid var(--cyan);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin: 14px 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 1.05rem;
+  overflow-x: auto;
+}
+.formula .katex-display { margin: 8px 0; }
+
+.tag {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: .8rem;
+  font-weight: 700;
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.metric {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.6);
+  transition: transform 0.2s ease;
+}
+.metric:hover { transform: translateY(-2px); }
+.metric .value { font-size: 1.65rem; font-weight: 800; color: #f8fafc; margin: 4px 0; }
+.metric .label { color: var(--muted); font-size: .85rem; font-weight: 600; }
+
+table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 12px; }
+th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { background: rgba(30, 41, 59, 0.8); color: #f1f5f9; font-weight: 700; }
+td { color: #cbd5e1; }
+th:first-child, td:first-child { text-align: left; }
+.table-wrap { overflow: auto; max-height: 520px; border: 1px solid var(--line); border-radius: 12px; }
+
+canvas {
+  width: 100%;
+  height: 380px;
+  display: block;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-top: 14px;
+}
+
+details {
+  border: 1px solid var(--line);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  transition: background 0.3s ease;
+}
+details[open] { background: rgba(15, 23, 42, 0.8); }
+summary { font-weight: 700; cursor: pointer; color: #e2e8f0; font-size: 1.05rem; }
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  padding: 30px;
+  font-size: .9rem;
+  border-top: 1px solid var(--line);
+  background: rgba(6, 9, 19, 0.8);
+}
+
+.section:nth-of-type(1) { animation-delay: 0.05s; }
+.section:nth-of-type(2) { animation-delay: 0.12s; }
+.section:nth-of-type(3) { animation-delay: 0.19s; }
+.section:nth-of-type(4) { animation-delay: 0.26s; }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *, *:before, *:after { animation: none!important; transition: none!important; scroll-behavior: auto!important; }
+}
+
+@media(max-width:720px) {
+  .grid, .three { grid-template-columns: 1fr; }
+  header { padding: 36px 16px; }
+  .section { padding: 20px; }
+  canvas { height: 300px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="kicker">Métodos numéricos · EDO de primer orden</div>
+    <h1>Simulador de reducción de incidencias de software</h1>
+    <p>Un modelo matemático para estudiar cómo podrían disminuir los tickets pendientes de soporte en el sistema informático de una comunidad universitaria. Ajusta los parámetros, ejecuta Heun y RK4, y compara sus aproximaciones con la solución exacta.</p>
+    <span class="tag">Simulación educativa · Parámetros hipotéticos</span>
+  </div>
+</header>
+
+<main>
+  <section class="section" id="contexto">
+    <h2>1. Problema y contexto</h2>
+    <p><b>Desafío:</b> “Simulación de la reducción de incidencias de software mediante un sistema automatizado de soporte técnico”.</p>
+    <p><b>Comunidad beneficiaria:</b> estudiantes, docentes y equipo de soporte de una universidad que utiliza un sistema web para inscripciones, consultas de notas y gestión académica.</p>
+    <p><b>Problema específico:</b> cuando se acumulan tickets (errores de inicio de sesión, páginas que no cargan o fallos de registro), el equipo necesita estimar cómo puede reducirse la cola de incidencias pendientes. El modelo representa una tasa de resolución proporcional a la cantidad pendiente.</p>
+
+
+<b>Qué significa cada entrada:</b> <span class="math-inline">I_0</span> = tickets pendientes al inicio; <span class="math-inline">k</span> = proporción de reducción por día; <span class="math-inline">h</span> y <span class="math-inline">h_2</span> = incrementos temporales de los dos ensayos; <span class="math-inline">T</span> = duración total de la simulación.
+    </div>
+
+    <div class="grid">
+      <div><label for="i0">Incidencias iniciales <span class="math-inline">I_0</span> (tickets, ≥ 0)</label><input id="i0" type="number" min="0" step="1" value="100"></div>
+      <div><label for="k">Tasa <span class="math-inline">k</span> (<span class="math-inline">\text{día}^{-1}</span>, ≥ 0)</label><input id="k" type="number" min="0" step="0.01" value="0.3"></div>
+      <div><label for="h">Tamaño de paso <span class="math-inline">h</span> (días)</label><input id="h" type="number" min="0.001" step="0.1" value="1"></div>
+      <div><label for="h2">Segundo tamaño de paso <span class="math-inline">h_2</span> (días)</label><input id="h2" type="number" min="0.001" step="0.1" value="0.5"></div>
+      <div><label for="T">Tiempo final <span class="math-inline">T</span> (días)</label><input id="T" type="number" min="0.001" step="1" value="10"></div>
+      <div>
+        <label for="tableStep">Tabla detallada para</label>
+        <select id="tableStep">
+          <option value="h">Paso h principal</option>
+          <option value="h2">Segundo paso h₂</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="run">Ejecutar simulación</button>
+      <button id="reset" style="background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 8px 20px rgba(51, 65, 85, 0.35);">Restablecer valores</button>
+    </div>
+
+    <p id="validation" role="status" class="muted"></p>
+
+    <h3>5. Gráfica comparativa</h3>
+    <p class="muted">Curvas: solución analítica, Heun y RK4 para el paso principal <span class="math-inline">h</span>.</p>
+    <canvas id="chart" aria-label="Gráfica comparativa de las soluciones" role="img"></canvas>
+    
+    <div class="grid three" id="metrics"></div>
+
+    <h3>6. Comparación de errores en el tiempo final</h3>
+    <p>El error absoluto es <span class="math-inline">|I_{\text{exacta}} - I_{\text{numérica}}|</span>. El error relativo porcentual es <span class="math-inline">\left(\frac{\text{error absoluto}}{|I_{\text{exacta}}|}\right) \times 100</span>. Si el valor exacto es cero, el error relativo no se define y se muestra “—”.</p>
+    
+    <div class="table-wrap">
+      <table id="summary">
+        <thead>
+          <tr><th>Ensayo</th><th>Método</th><th>Valor final</th><th>Error absoluto</th><th>Error relativo (%)</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3>Tabla de iteraciones (paso seleccionado)</h3>
+    <p class="muted">La tabla contiene tiempo, aproximaciones y errores en cada nodo.</p>
+
+    <div class="table-wrap">
+      <table id="detail">
+        <thead>
+          <tr><th>n</th><th>t (días)</th><th>Analítica</th><th>Heun</th><th>RK4</th><th>Error abs. Heun</th><th>Error rel. Heun (%)</th><th>Error abs. RK4</th><th>Error rel. RK4 (%)</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>7. Explicación de los métodos numéricos</h2>
+
+    <details open>
+      <summary>Heun (Runge–Kutta de orden 2)</summary>
+      <p>Heun toma una pendiente inicial y una pendiente estimada al final del paso; luego promedia ambas para avanzar.</p>
+      
+      <div class="formula math-display">
+        \begin{aligned}
+        f(t, I) &= -k I \\
+        q_1 &= f(t_n, I_n) \\
+        q_2 &= f(t_n + h, I_n + h q_1) \\
+        I_{n+1} &= I_n + \frac{h}{2} (q_1 + q_2)
+        \end{aligned}
+      </div>
+
+      <p>Su error global teórico es del orden <span class="math-inline">\mathcal{O}(h^2)</span>. Reducir <span class="math-inline">h</span> normalmente mejora su aproximación.</p>
+    </details>
+
+
+<details open>
+      <summary>Runge–Kutta clásico de cuarto orden (RK4)</summary>
+      <p>RK4 calcula cuatro pendientes (al inicio, dos estimaciones en el punto medio y una al final) y las combina con pesos 1, 2, 2 y 1.</p>
+      
+      <div class="formula math-display">
+        \begin{aligned}
+        q_1 &= f(t_n, I_n) \\
+        q_2 &= f\left(t_n + \frac{h}{2}, I_n + \frac{h}{2} q_1\right) \\
+        q_3 &= f\left(t_n + \frac{h}{2}, I_n + \frac{h}{2} q_2\right) \\
+        q_4 &= f(t_n + h, I_n + h q_3) \\
+        I_{n+1} &= I_n + \frac{h}{6} (q_1 + 2q_2 + 2q_3 + q_4)
+        \end{aligned}
+      </div>
+
+      <p>Su error global teórico es del orden <span class="math-inline">\mathcal{O}(h^4)</span>, por lo que suele ser más preciso que Heun para pasos comparables.</p>
+    </details>
+
+    <details>
+      <summary>Cómo se compara un método</summary>
+      <p>Para que la comparación sea justa se conservan <span class="math-inline">I_0</span>, <span class="math-inline">k</span>, <span class="math-inline">T</span> y <span class="math-inline">h</span> entre Heun y RK4 en el mismo ensayo. Se repite el ensayo con <span class="math-inline">h_2</span>. La solución analítica sirve como referencia para medir los errores.</p>
+    </details>
+  </section>
+
+  <section class="section">
+    <h2>8. Interpretación automática y conclusiones</h2>
+    <div id="interpretation"><p>Ejecuta la simulación para generar una interpretación.</p></div>
+    
+    <h3>Limitaciones</h3>
+    <ul>
+      <li>Se asume que no entran nuevos reportes; en un sistema real sí puede haber tickets entrantes.</li>
+      <li>La capacidad del equipo y la dificultad de cada incidencia pueden variar.</li>
+      <li>La tasa <span class="math-inline">k</span> es hipotética y debería estimarse a partir de datos reales para un estudio aplicado.</li>
+      <li>Los resultados describen el modelo elegido, no una predicción comprobada de la universidad.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>9. Conclusión del desafío</h2>
+    <p>Una EDO de primer orden permite describir una dinámica de cambio de la cola de incidencias. La solución analítica aporta una referencia exacta para evaluar los métodos numéricos. En el ensayo se puede cuantificar cómo el tamaño de paso afecta el error de Heun y RK4; típicamente RK4 presenta menor error con el mismo paso, aunque el resultado concreto se debe verificar con los parámetros seleccionados. La utilidad comunitaria consiste en ofrecer una herramienta didáctica para entender la evolución de solicitudes de soporte y sus supuestos.</p>
+  </section>
+</main>
+
+<footer>Proyecto académico de Métodos Numéricos · Modelo ilustrativo, no predictor operacional.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 6) => Number.isFinite(x) ? x.toLocaleString('es-BO', { maximumFractionDigits: d, minimumFractionDigits: 0 }) : '—';
+const exact = (t, I0, k) => I0 * Math.exp(-k * t);
+const f = (t, y, k) => -k * y;
+
+function renderMath() {
+  if (window.katex) {
+    document.querySelectorAll('.math-inline').forEach(el => {
+      katex.render(el.textContent, el, { throwOnError: false, displayMode: false });
+    });
+    document.querySelectorAll('.math-display').forEach(el => {
+      katex.render(el.textContent, el, { throwOnError: false, displayMode: true });
+    });
+  }
+}
+
+function solve(method, I0, k, T, h) {
+  const N = Math.ceil(T / h), rows = [{ n: 0, t: 0, y: I0 }];
+  let y = I0, t = 0;
+  for (let n = 0; n < N; n++) {
+    const step = Math.min(h, T - t);
+    if (step <= 1e-12) break;
+    let next;
+    if (method === 'heun') {
+      const q1 = f(t, y, k), q2 = f(t + step, y + step * q1, k);
+      next = y + step * (q1 + q2) / 2;
+    } else {
+      const q1 = f(t, y, k), q2 = f(t + step / 2, y + step * q1 / 2, k),
+            q3 = f(t + step / 2, y + step * q2 / 2, k), q4 = f(t + step, y + step * q3, k);
+      next = y + step * (q1 + 2 * q2 + 2 * q3 + q4) / 6;
+    }
+    t += step; y = next; rows.push({ n: n + 1, t, y });
+  }
+  return rows;
+}
+
+
+
+function error(ex, num) {
+  const a = Math.abs(ex - num);
+  return { a, r: ex === 0 ? null : a / Math.abs(ex) * 100 };
+}
+
+function run() {
+  const I0 = Number($('i0').value), k = Number($('k').value), h = Number($('h').value), h2 = Number($('h2').value), T = Number($('T').value);
+  if (![I0, k, h, h2, T].every(Number.isFinite)  I0 < 0  k < 0  h <= 0  h2 <= 0 || T <= 0) {
+    $('validation').textContent = 'Error: I₀ y k deben ser ≥ 0; h, h₂ y T deben ser positivos. Ingresa números válidos.';
+    return;
+  }
+  if (Math.ceil(T / Math.min(h, h2)) > 5000) {
+    $('validation').textContent = 'El paso elegido genera más de 5.000 iteraciones. Aumenta h o reduce T.';
+    return;
+  }
+  $('validation').textContent = 'Simulación ejecutada correctamente. Parámetros válidos.';
+
+  const aH = solve('heun', I0, k, T, h), rH = solve('rk4', I0, k, T, h),
+        aH2 = solve('heun', I0, k, T, h2), rH2 = solve('rk4', I0, k, T, h2);
+
+  renderChart(I0, k, T, aH, rH);
+
+  const exactT = exact(T, I0, k), lastH = aH[aH.length - 1].y, lastR = rH[rH.length - 1].y, lastH2 = aH2[aH2.length - 1].y, lastR2 = rH2[rH2.length - 1].y;
+  const entries = [['h = ' + fmt(h) + ' días', 'Heun', lastH], ['h = ' + fmt(h) + ' días', 'RK4', lastR], ['h₂ = ' + fmt(h2) + ' días', 'Heun', lastH2], ['h₂ = ' + fmt(h2) + ' días', 'RK4', lastR2]];
+  
+  $('summary').querySelector('tbody').innerHTML = entries.map(e => {
+    const er = error(exactT, e[2]);
+    return <tr><td>${e[0]}</td><td>${e[1]}</td><td>${fmt(e[2])}</td><td>${fmt(er.a)}</td><td>${er.r === null ? '—' : fmt(er.r) + '%'}</td></tr>;
+  }).join('');
+
+  const minErr = Math.min(error(exactT, lastH).a, error(exactT, lastR).a, error(exactT, lastH2).a, error(exactT, lastR2).a);
+  const minLabel = entries.find(e => Math.abs(error(exactT, e[2]).a - minErr) < 1e-12);
+
+  $('metrics').innerHTML = <div class="metric"><div class="label">Solución exacta en T=${fmt(T)} d</div><div class="value">${fmt(exactT, 4)}</div><div class="muted">tickets estimados</div></div><div class="metric"><div class="label">Método con menor error final en estos ensayos</div><div class="value">${minLabel[1]}</div><div class="muted">${minLabel[0]} · error ${fmt(minErr, 8)}</div></div><div class="metric"><div class="label">Reducción analítica estimada</div><div class="value">${I0 === 0 ? '0' : fmt((I0 - exactT) / I0 * 100, 2) + '%'}</div><div class="muted">respecto a I₀</div></div>;
+
+  const selected = $('tableStep').value === 'h' ? h : h2, heun = $('tableStep').value === 'h' ? aH : aH2, rk = $('tableStep').value === 'h' ? rH : rH2;
+  const map = new Map();
+  heun.forEach(row => map.set(row.n, { t: row.t, heun: row.y }));
+  rk.forEach(row => { let o = map.get(row.n); if (o) o.rk4 = row.y; });
+
+  $('detail').querySelector('tbody').innerHTML = [...map.entries()].map(([n, o]) => {
+    const ex = exact(o.t, I0, k), eh = error(ex, o.heun), er = error(ex, o.rk4);
+    return <tr><td>${n}</td><td>${fmt(o.t, 5)}</td><td>${fmt(ex)}</td><td>${fmt(o.heun)}</td><td>${fmt(o.rk4)}</td><td>${fmt(eh.a)}</td><td>${eh.r === null ? '—' : fmt(eh.r) + '%'}</td><td>${fmt(er.a)}</td><td>${er.r === null ? '—' : fmt(er.r) + '%'}</td></tr>;
+  }).join('');
+
+  const exactFinal = exactT;
+  const textIntro = Con I₀=${fmt(I0)} tickets y k=${fmt(k)} día⁻¹, el modelo analítico estima ${fmt(exactFinal, 3)} incidencias pendientes al cabo de ${fmt(T)} días.;
+  const likely =  En los cuatro ensayos (Heun y RK4 con h=${fmt(h)} y h₂=${fmt(h2)} días), el menor error absoluto final corresponde a ${minLabel[1]} con ${minLabel[0]} (error ${fmt(minErr, 8)}).;
+  const reduction = I0 > 0 ?  Esto representa una disminución aproximada del ${fmt((I0 - exactFinal) / I0 * 100, 2)}% frente al valor inicial. : ' Como el valor inicial es cero, no hay incidencias que reducir.';
+  
+  $('interpretation').innerHTML = `<p>${textIntro}${reduction}${likely}</p><p>En lenguaje sencillo: la ecuación supone que, a medida que quedan menos tickets, también se resuelven menos tickets por unidad de tiempo.
+  
 La gráfica y la tabla muestran las aproximaciones de Heun y RK4 frente a la fórmula exacta.</p>`;
 }
 
