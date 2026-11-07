@@ -1,0 +1,65 @@
+La gráfica y la tabla muestran las aproximaciones de Heun y RK4 frente a la fórmula exacta.</p>`;
+}
+
+function renderChart(I0, k, T, heun, rk) {
+  const canvas = $('chart'), ctx = canvas.getContext('2d'), rect = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr; ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height, p = { l: 62, r: 18, t: 20, b: 45 }, pw = W - p.l - p.r, ph = H - p.t - p.b;
+  const maxY = Math.max(I0, 1), x = t => p.l + (t / T) * pw, y = v => p.t + ph - (v / maxY) * ph;
+  
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = '12px system-ui'; ctx.strokeStyle = '#1e293b'; ctx.fillStyle = '#94a3b8'; ctx.lineWidth = 1;
+  
+  for (let i = 0; i <= 5; i++) {
+    let val = maxY * i / 5, yy = y(val);
+    ctx.beginPath(); ctx.moveTo(p.l, yy); ctx.lineTo(W - p.r, yy); ctx.stroke();
+    ctx.fillText(fmt(val, 2), 5, yy + 4);
+  }
+  for (let i = 0; i <= 5; i++) {
+    let t = T * i / 5, xx = x(t);
+    ctx.beginPath(); ctx.moveTo(xx, p.t); ctx.lineTo(xx, H - p.b); ctx.stroke();
+    ctx.fillText(fmt(t, 2), xx - 10, H - 18);
+  }
+  
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillText('Incidencias (tickets)', p.l, 12);
+  ctx.fillText('Tiempo (días)', W / 2 - 35, H - 3);
+
+  function line(points, color) {
+    ctx.beginPath();
+    points.forEach((pt, i) => {
+      let xx = x(pt.t), yy = y(pt.val);
+      if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    });
+    ctx.strokeStyle = color; ctx.lineWidth = 2.8; ctx.stroke();
+  }
+
+  const exactPts = Array.from({ length: 201 }, (_, i) => { let t = T * i / 200; return { t, val: exact(t, I0, k) }; });
+  line(exactPts, '#38bdf8');
+  line(heun.map(o => ({ t: o.t, val: o.y })), '#f59e0b');
+  line(rk.map(o => ({ t: o.t, val: o.y })), '#10b981');
+
+  const legend = [['Analítica', '#38bdf8'], ['Heun', '#f59e0b'], ['RK4', '#10b981']];
+  let lx = p.l;
+  legend.forEach(([name, color]) => {
+    ctx.fillStyle = color; ctx.fillRect(lx, H - 35, 15, 3);
+    ctx.fillStyle = '#f1f5f9'; ctx.fillText(name, lx + 20, H - 30);
+    lx += 85;
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderMath();
+  run();
+});
+
+$('run').addEventListener('click', run);
+$('tableStep').addEventListener('change', run);
+$('reset').addEventListener('click', () => {
+  $('i0').value = 100; $('k').value = .3; $('h').value = 1; $('h2').value = .5; $('T').value = 10; $('tableStep').value = 'h';
+  run();
+});
+window.addEventListener('resize', run);
+</script>
+</body>
+</html>
